@@ -1,0 +1,15 @@
+{
+  "manifest_version": 2,
+  "name": "HC Zotero MCP",
+  "version": "1.2.0",
+  "description": "Fast, read-only MCP server (Streamable HTTP on 127.0.0.1:37119/mcp) for searching your Zotero library and locating attachment files.",
+  "homepage_url": "https://github.com/hc-adz/hc-zotero-mcp",
+  "applications": {
+    "zotero": {
+      "id": "hc-zotero-mcp@hc-adz.github.io",
+      "update_url": "https://raw.githubusercontent.com/hc-adz/hc-zotero-mcp/main/updates.json",
+      "strict_min_version": "7.0",
+      "strict_max_version": "12.*"
+    }
+  }
+}
