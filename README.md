@@ -1,7 +1,7 @@
 # HC Zotero MCP
 
 A small, fast, **read-only** [MCP](https://modelcontextprotocol.io) server that runs inside Zotero as
-a plugin. It lets AI assistants such as Claude search your Zotero library, read your notes and
+a plugin. It lets AI apps on your computer, such as the Claude Desktop app, search your Zotero library, read your notes and
 annotations, and find your PDFs on disk without changing anything in your library.
 
 Once installed, it serves MCP at:
@@ -19,6 +19,9 @@ http://127.0.0.1:37119/mcp
   so full-text search is slower and less precise there.
 - Zotero 6 and older are **not** supported.
 - Windows, macOS, or Linux.
+- An AI app installed on your computer, such as the **Claude Desktop app** or Claude Code.
+  **AI websites (claude.ai in a browser, ChatGPT, Gemini) can't use this plugin.** See
+  [Connect your AI assistant](#connect-your-ai-assistant).
 
 To check your Zotero version:
 
@@ -30,8 +33,14 @@ To update, use **Help → Check for Updates…**, or download the latest version
 
 ## Install
 
-The plugin comes as a `.xpi` file inside a `.zip`. It's zipped because some browsers try to
-install `.xpi` files as browser extensions, which won't work.
+The download is a `.zip` holding two files:
+
+- `hc-zotero-mcp-<version>.xpi`: the Zotero plugin. Everyone needs this.
+- `hc-zotero-mcp-<version>.mcpb`: the Claude Desktop extension. You only need it if you use the
+  Claude Desktop app (see [Claude Desktop](#claude-desktop)).
+
+They're zipped because some browsers try to install `.xpi` files as browser extensions, which
+won't work.
 
 ### Step 1: Download
 
@@ -44,13 +53,14 @@ install `.xpi` files as browser extensions, which won't work.
 
 1. Open your **Downloads** folder in File Explorer.
 2. Right-click `hc-zotero-mcp-<version>.zip` and choose **Extract All…**, then click **Extract**.
-3. A folder opens containing `hc-zotero-mcp-<version>.xpi`. Leave the window open.
+3. A folder opens containing the `.xpi` and `.mcpb` files. Leave the window open.
 
 **macOS**
 
 1. Open your **Downloads** folder in Finder.
-2. If Safari already unzipped the download, you'll see `hc-zotero-mcp-<version>.xpi`. Skip to Step 3.
-3. Otherwise, double-click `hc-zotero-mcp-<version>.zip`. The `.xpi` appears next to it.
+2. If Safari already unzipped the download, you'll see a `hc-zotero-mcp-<version>` folder with the
+   `.xpi` and `.mcpb` inside. Skip to Step 3.
+3. Otherwise, double-click `hc-zotero-mcp-<version>.zip`. A folder with both files appears next to it.
 
 **Linux**
 
@@ -94,18 +104,39 @@ If the page doesn't load, see [Troubleshooting](#troubleshooting).
 
 ## Connect your AI assistant
 
-### Claude Code
-
-Run this in a terminal (any operating system):
-
-```bash
-claude mcp add --transport http zotero http://127.0.0.1:37119/mcp
-```
+> [!IMPORTANT]
+> **This only works with AI apps installed on your own computer.** It can't be used from AI
+> websites: **claude.ai in a web browser, ChatGPT, and Gemini on the web can't connect to it.**
+> Those services run on their companies' servers, which can't reach Zotero on your computer.
+> Use the **Claude Desktop app** (or another app listed below) instead of the website.
 
 ### Claude Desktop
 
-Claude Desktop connects to local servers through a small bridge, which needs
-[Node.js](https://nodejs.org) (the LTS version is fine).
+The `.mcpb` file from the download is a one-click Claude Desktop extension. You don't need to edit
+any settings files or install anything else.
+
+1. Install the Zotero plugin first ([Install](#install), Steps 1–4).
+2. Open the **Claude Desktop app**, not claude.ai in your browser.
+3. Install the extension, either way:
+   - **Double-click** `hc-zotero-mcp-<version>.mcpb`, or
+   - In Claude Desktop, open **Settings → Extensions**, then drag the `.mcpb` file into the window.
+4. Review the details Claude Desktop shows and click **Install**.
+5. Leave the **port** and **access token** settings blank unless you changed them in Zotero
+   ([Configuration](#configuration)).
+6. Make sure **HC Zotero MCP** is turned on in **Settings → Extensions**.
+7. Start a new chat and try: *"Search my Zotero library for articles about active learning."*
+
+Zotero must be open when Claude uses your library. If it isn't, Claude will tell you to open
+Zotero; you don't need to restart Claude afterwards.
+
+To update the extension, install the newer `.mcpb` the same way. To remove it, go to
+**Settings → Extensions**.
+
+<details>
+<summary>Alternative: configure Claude Desktop by hand</summary>
+
+If your version of Claude Desktop doesn't have **Settings → Extensions**, you can connect through
+the config file instead. This needs [Node.js](https://nodejs.org) (the LTS version is fine).
 
 1. Install Node.js if you don't have it.
 2. In Claude Desktop, open **Settings → Developer → Edit Config**. This opens
@@ -127,16 +158,28 @@ Claude Desktop connects to local servers through a small bridge, which needs
 
 4. Save the file and restart Claude Desktop.
 
-### Other clients (Cursor, VS Code, and others)
+</details>
 
-Most clients accept an HTTP server entry like this:
+> **Don't use Settings → Connectors → "Add custom connector"** for this. Custom connectors are
+> reached from Anthropic's servers, so they can't connect to Zotero on your computer.
+
+### Claude Code
+
+Run this in a terminal (any operating system):
+
+```bash
+claude mcp add --transport http zotero http://127.0.0.1:37119/mcp
+```
+
+### Other apps (Cursor, VS Code, and others)
+
+Most apps that run on your computer accept an HTTP server entry like this:
 
 ```json
 { "mcpServers": { "zotero": { "type": "http", "url": "http://127.0.0.1:37119/mcp" } } }
 ```
 
-Clients that only support stdio can use the same `npx -y mcp-remote http://127.0.0.1:37119/mcp`
-bridge as Claude Desktop.
+Apps that only support stdio can use `npx -y mcp-remote http://127.0.0.1:37119/mcp` as a bridge.
 
 Use `127.0.0.1` rather than `localhost`. The server listens on IPv4 only, and on macOS and Linux
 `localhost` often goes to the IPv6 address first.
@@ -158,6 +201,17 @@ Use `127.0.0.1` rather than `localhost`. The server listens on IPv4 only, and on
   ```
 
   If 37119 falls inside one of the listed ranges, [change the port](#configuration).
+
+**Claude says it can't reach Zotero**
+
+Open Zotero and try again; you don't need to restart Claude. If it still fails, check the
+[health page](http://127.0.0.1:37119/health) as described above. If you changed the port or set a
+token in Zotero, enter the same values in **Settings → Extensions → HC Zotero MCP**.
+
+**The HC Zotero MCP tools don't appear in Claude**
+
+Make sure you're using the Claude Desktop **app**, not claude.ai in a browser, and that the
+extension is turned on in **Settings → Extensions**. Then start a new chat.
 
 **The assistant finds items but can't open the PDFs (macOS)**
 
@@ -225,8 +279,8 @@ Search for `hc-zotero-mcp` to find these settings:
 
 | Pref | Default | Purpose |
 |---|---|---|
-| `extensions.hc-zotero-mcp.port` | `37119` | Port the server listens on. If you change it, update the URL in your AI client too |
-| `extensions.hc-zotero-mcp.token` | empty | If set, clients must send `Authorization: Bearer <token>` |
+| `extensions.hc-zotero-mcp.port` | `37119` | Port the server listens on. If you change it, update your AI app too (in Claude Desktop: **Settings → Extensions → HC Zotero MCP → Configure**) |
+| `extensions.hc-zotero-mcp.token` | empty | If set, apps must send `Authorization: Bearer <token>`. In Claude Desktop, enter the same token in the extension's settings |
 
 The default port, 37119, doesn't collide with Zotero (23119), Better BibTeX, or other Zotero MCP
 plugins (23120), and it's outside the Windows ephemeral port range (49152–65535).
@@ -245,8 +299,13 @@ Requires Node.js 22.5 or newer.
 node scripts/build.cjs
 ```
 
-Builds `dist/hc-zotero-mcp-<version>.xpi` and `dist/hc-zotero-mcp-<version>.zip` (the release
-download).
+Builds into `dist/`:
+
+- `hc-zotero-mcp-<version>.xpi`: the Zotero plugin, from `plugin/`.
+- `hc-zotero-mcp-<version>.mcpb`: the Claude Desktop extension, from `extension/`. It bundles a
+  snapshot of the tool list, taken from `plugin/content/tools.js`, so Claude Desktop starts
+  cleanly even when Zotero is closed.
+- `hc-zotero-mcp-<version>.zip`: the release download, containing both.
 
 ```bash
 node test/run-node.cjs <dir-with-copy-of-zotero.sqlite-and-fulltext.sqlite> [zoteroDataDir]
@@ -263,3 +322,5 @@ Runs an end-to-end test against the plugin running in Zotero.
 
 Layout: `plugin/content/tools.js` contains the tool logic and has no I/O of its own. `mcp.js` handles
 JSON-RPC and the MCP protocol. `zenv.js` adapts the Zotero API. `http.js` is the async socket server.
+`extension/server/index.js` is the Claude Desktop extension: a dependency-free bridge from stdio to
+the plugin's HTTP endpoint.

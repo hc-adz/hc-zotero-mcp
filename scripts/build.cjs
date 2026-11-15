@@ -1,6 +1,7 @@
-// Packs plugin/ into dist/hc-zotero-mcp-<version>.xpi (a zip with forward-slash paths), then wraps
-// that .xpi in dist/hc-zotero-mcp-<version>.zip for release downloads (browsers try to install a
-// bare .xpi as a browser extension).
+// Packs plugin/ into dist/hc-zotero-mcp-<version>.xpi (a zip with forward-slash paths), packs
+// extension/ into dist/hc-zotero-mcp-<version>.mcpb (Claude Desktop extension), then wraps both in
+// dist/hc-zotero-mcp-<version>.zip for release downloads (browsers try to install a bare .xpi as a
+// browser extension).
 // No dependencies: uses Node's zlib for deflate + crc32.
 const fs = require("node:fs");
 const path = require("node:path");
@@ -50,10 +51,58 @@ function makeZip(entries) {
 	return Buffer.concat([...locals, cd, end]);
 }
 
+// ---- Zotero plugin (.xpi)
 const files = walk(src);
 const xpi = makeZip(files.map(name => ({ name, data: fs.readFileSync(path.join(src, ...name.split("/"))) })));
 fs.mkdirSync(path.dirname(xpiOut), { recursive: true });
 fs.writeFileSync(xpiOut, xpi);
-fs.writeFileSync(zipOut, makeZip([{ name: `${base}.xpi`, data: xpi }]));
 console.log(`Built ${path.relative(root, xpiOut)} (${files.length} files: ${files.join(", ")})`);
-console.log(`Built ${path.relative(root, zipOut)} (release download containing the .xpi)`);
+
+// ---- Claude Desktop extension (.mcpb)
+// Snapshot the plugin's initialize result and tool list so the bridge can answer them while
+// Zotero is closed. Tool definitions are static, so a stub env is enough.
+async function buildExtension() {
+	globalThis.ZMCPTools = require(path.join(src, "content", "tools.js"));
+	const ZMCPProtocol = require(path.join(src, "content", "mcp.js"));
+	const tools = globalThis.ZMCPTools.create({});
+	const protocol = ZMCPProtocol.create({
+		tools,
+		serverInfo: { name: "hc-zotero-mcp", title: "HC Zotero MCP", version }
+	});
+	const init = (await protocol.handleMessage({ jsonrpc: "2.0", id: 1, method: "initialize", params: {} })).result;
+	const list = (await protocol.handleMessage({ jsonrpc: "2.0", id: 2, method: "tools/list" })).result;
+	delete init.protocolVersion;
+	const fallback = { supportedVersions: ZMCPProtocol.SUPPORTED_VERSIONS, initialize: init, tools: list.tools };
+
+	const extSrc = path.join(root, "extension");
+	const manifest = JSON.parse(fs.readFileSync(path.join(extSrc, "manifest.json"), "utf8"));
+	manifest.version = version;
+	manifest.tools = list.tools.map(t => ({ name: t.name, description: t.title }));
+	const entries = [
+		{ name: "manifest.json", data: Buffer.from(JSON.stringify(manifest, null, 2) + "\n") },
+		{ name: "server/index.js", data: fs.readFileSync(path.join(extSrc, "server", "index.js")) },
+		{ name: "server/fallback.json", data: Buffer.from(JSON.stringify(fallback, null, 2) + "\n") }
+	];
+	if (fs.existsSync(path.join(extSrc, "icon.png"))) {
+		manifest.icon = "icon.png";
+		entries[0].data = Buffer.from(JSON.stringify(manifest, null, 2) + "\n");
+		entries.push({ name: "icon.png", data: fs.readFileSync(path.join(extSrc, "icon.png")) });
+	}
+	return makeZip(entries);
+}
+
+buildExtension().then((mcpb) => {
+	const mcpbOut = path.join(root, "dist", `${base}.mcpb`);
+	fs.writeFileSync(mcpbOut, mcpb);
+	console.log(`Built ${path.relative(root, mcpbOut)} (Claude Desktop extension)`);
+
+	// ---- Release download: both files in one .zip
+	fs.writeFileSync(zipOut, makeZip([
+		{ name: `${base}.xpi`, data: xpi },
+		{ name: `${base}.mcpb`, data: mcpb }
+	]));
+	console.log(`Built ${path.relative(root, zipOut)} (release download: .xpi + .mcpb)`);
+}).catch((e) => {
+	console.error(e);
+	process.exit(1);
+});

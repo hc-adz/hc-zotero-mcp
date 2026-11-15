@@ -1,0 +1,55 @@
+{
+  "manifest_version": "0.3",
+  "name": "hc-zotero-mcp",
+  "display_name": "HC Zotero MCP",
+  "description": "Search your Zotero library, notes and PDF annotations, and find attachment files. Requires the HC Zotero MCP plugin in Zotero.",
+  "long_description": "Connects Claude Desktop to the **HC Zotero MCP** plugin running inside Zotero on this computer. Claude can search your library (titles, abstracts, creators, tags, notes, annotations and full text), read item details and notes, and locate PDFs and Zotero's extracted text on disk.\n\nEverything is **read-only** and stays on this computer. Zotero must be open while you use it.\n\nRequires the HC Zotero MCP plugin for Zotero 7 or newer (Zotero 10+ recommended): https://github.com/hc-adz/hc-zotero-mcp",
+  "author": {
+    "name": "hc-adz",
+    "url": "https://github.com/hc-adz"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hc-adz/hc-zotero-mcp.git"
+  },
+  "homepage": "https://github.com/hc-adz/hc-zotero-mcp",
+  "documentation": "https://github.com/hc-adz/hc-zotero-mcp#readme",
+  "support": "https://github.com/hc-adz/hc-zotero-mcp/issues",
+  "server": {
+    "type": "node",
+    "entry_point": "server/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/server/index.js"],
+      "env": {
+        "HC_ZOTERO_MCP_PORT": "${user_config.port}",
+        "HC_ZOTERO_MCP_TOKEN": "${user_config.token}"
+      }
+    }
+  },
+  "keywords": ["zotero", "research", "citations", "library", "pdf", "academic"],
+  "compatibility": {
+    "platforms": ["darwin", "win32", "linux"],
+    "runtimes": {
+      "node": ">=18.0.0"
+    }
+  },
+  "user_config": {
+    "port": {
+      "type": "number",
+      "title": "Zotero plugin port",
+      "description": "Only change this if you changed extensions.hc-zotero-mcp.port in Zotero.",
+      "default": 37119,
+      "min": 1024,
+      "max": 65535,
+      "required": false
+    },
+    "token": {
+      "type": "string",
+      "title": "Access token (optional)",
+      "description": "Only needed if you set extensions.hc-zotero-mcp.token in Zotero. Leave blank otherwise.",
+      "sensitive": true,
+      "required": false
+    }
+  }
+}
