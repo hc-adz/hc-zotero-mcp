@@ -125,6 +125,11 @@ any settings files or install anything else.
    ([Configuration](#configuration)).
 6. Make sure **HC Zotero MCP** is turned on in **Settings → Extensions**.
 7. Start a new chat and try: *"Search my Zotero library for articles about active learning."*
+8. **Claude will ask for permission** the first time it uses each Zotero tool, for example
+   *"Claude wants to use Search Zotero library from HC Zotero MCP"*. Choose **Always allow**.
+   This is safe because every tool in this extension is read-only: it can search and read your
+   library but can't change, add, or delete anything. You may see this prompt once for each of the
+   seven tools, and then not again.
 
 Zotero must be open when Claude uses your library. If it isn't, Claude will tell you to open
 Zotero; you don't need to restart Claude afterwards.
